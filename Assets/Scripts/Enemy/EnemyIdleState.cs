@@ -22,5 +22,11 @@ public class EnemyIdleState : EnemyState
         {
             fsm.ChangeState(enemy.ChaseState);
         }
+
+        if (distance <= enemy.AttackRange)
+            {
+                fsm.ChangeState(enemy.AttackState);
+                return;
+            }
     }
 }

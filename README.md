@@ -5,7 +5,7 @@
 그래픽이나 연출보다는 **게임 클라이언트 시스템 설계 및 구현 역량**을 보여주는 것을 목표로 합니다.
 
 무경험 상태에서 시작하여,  
-플레이어 제어 → 시스템 분리 → AI → UI → 데이터 기반 구조로  
+플레이어 제어 → 시스템 분리 → AI → 전투 → UI → 데이터 기반 구조로  
 **클라이언트 구조를 단계적으로 확장하는 과정**을 기록합니다.
 
 ---
@@ -94,30 +94,75 @@ Enemy는 Controller(관리자)와 Movement(이동 처리)를 분리하고,
 상태 및 상태 전환은 순수 C# 클래스 기반으로 구성했습니다.
 
 Enemy
-├ EnemyController : 상태 관리 및 구성 관리자
-├ EnemyMovement : 이동 처리 전담
-├ EnemyStateMachine : 상태 전환 관리
+├ EnemyController
+├ EnemyMovement
+├ EnemyStateMachine
 └ States
-├ EnemyIdleState : 대기 상태
-└ EnemyChaseState : 추적 상태
+├ EnemyIdleState
+└ EnemyChaseState
 
 ---
 
 ### 구현 내용
 - **Idle ↔ Chase 상태 전환**
-  - 플레이어가 감지 범위(`detectRange`) 안으로 들어오면 Chase로 전환
-  - 플레이어가 이탈 범위(`loseRange`) 밖으로 나가면 Idle로 복귀
-- **Hysteresis(히스테리시스) 적용**
-  - `detectRange < loseRange`로 설정하여 상태가 떨리는 현상 방지
-- **Chase 상태에서 실제 추적 이동**
-  - Chase 상태에서 `EnemyMovement`를 호출하여 플레이어 방향으로 이동
-  - Idle 상태에서는 이동 호출이 없어 정지
+  - 플레이어가 감지 범위(`detectRange`) 안으로 들어오면 Chase 전환
+  - 플레이어가 이탈 범위(`loseRange`) 밖으로 나가면 Idle 복귀
+- **Hysteresis 적용**
+  - `detectRange < loseRange` 설정으로 상태 떨림 방지
+- **상태 기반 이동 처리**
+  - Chase 상태에서만 이동 수행
+  - Idle 상태에서는 이동 정지
 
 ---
 
 ### 설계 포인트
-- 상태(State)와 Unity 컴포넌트(MonoBehaviour)를 분리하여 구조 단순화
-- Enemy의 행동을 상태 기반으로 설명/확장 가능한 형태로 구성
+- 상태(State)와 Unity 컴포넌트(MonoBehaviour)를 분리
+- 상태 추가 시 기존 구조 수정 없이 확장 가능
+
+---
+
+## Phase 4 – Combat System & Interaction
+
+### 목표
+플레이어와 적 간의 **전투 상호작용 시스템**을 구현하고,  
+AI 상태와 공격 로직이 유기적으로 연결되도록 설계했습니다.
+
+---
+
+### 구조 설계
+Enemy
+├ EnemyController
+├ EnemyMovement
+├ EnemyAttack
+├ EnemyHealth
+└ States
+├ EnemyIdleState
+├ EnemyChaseState
+└ EnemyAttackState
+
+---
+
+### 구현 내용
+- **Attack 상태 추가**
+  - 공격 범위 진입 시 Chase → Attack 전환
+  - 이탈 범위 초과 시 Attack → Chase 복귀
+- **공격 쿨타임 시스템**
+  - 일정 시간 간격으로만 공격 가능
+- **IDamageable 인터페이스 도입**
+  - Player / Enemy 공통 피격 처리 구조
+- **피격 처리**
+  - 체력 감소
+  - 체력 0 이하 시 오브젝트 비활성화
+- **물리 충돌 안정화**
+  - Rigidbody2D를 Kinematic으로 설정하여
+    비물리 이동 구조에서 발생하던 밀림 및 판정 오류 해결
+
+---
+
+### 설계 포인트
+- 공격 판정과 AI 상태 로직 분리
+- 물리 엔진 의존 최소화
+- 시스템 중심 전투 구조 설계
 
 ---
 
@@ -129,10 +174,8 @@ Enemy
 ---
 
 ## 📈 개발 로드맵
-- Phase 3: 적 AI 구현 (FSM 기반 상태 관리)
-- Phase 4: 전투 / 스킬 시스템 (데이터 기반 설계)
-- Phase 5: UI 시스템 및 게임 흐름 구성
-- Phase 6: 코드 정리 및 포트폴리오 최종 완성
+- Phase 5: 플레이어 공격 및 UI 피드백
+- Phase 6: 데이터 기반 구조 및 포트폴리오 정리
 
 ---
 

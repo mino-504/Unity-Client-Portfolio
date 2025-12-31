@@ -12,18 +12,23 @@ public class EnemyChaseState : EnemyState
 
     public override void Tick()
     {
-        // ✅ 추적 이동
-        enemy.Movement.MoveTowardsPlayer();
+        float distance = Vector2.Distance(enemy.transform.position, enemy.PlayerTransform.position);
 
-        float distance = Vector2.Distance(
-            enemy.transform.position,
-            enemy.PlayerTransform.position
-        );
-
-        // ✅ EnemyController에 있는 LoseRange 사용
+        // ✅ 1) 놓치면 Idle (가장 먼저)
         if (distance > enemy.LoseRange)
         {
             fsm.ChangeState(enemy.IdleState);
+            return;
         }
+
+        // ✅ 2) 공격 범위면 Attack
+        if (distance <= enemy.AttackRange)
+        {
+            fsm.ChangeState(enemy.AttackState);
+            return;
+        }
+
+        // ✅ 3) 그 외에는 추적 이동
+        enemy.Movement.MoveTowardsPlayer();
     }
 }

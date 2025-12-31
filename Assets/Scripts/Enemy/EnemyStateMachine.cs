@@ -1,18 +1,18 @@
 public class EnemyStateMachine
 {
-    public EnemyState CurrentState { get; private set; }
+    private EnemyState currentState;
 
     public void ChangeState(EnemyState newState)
     {
-        if (CurrentState == newState) return;
+        if (currentState == newState) return; // ✅ 같은 상태면 무시
 
-        CurrentState?.Exit();
-        CurrentState = newState;
-        CurrentState?.Enter();
+        currentState?.Exit();
+        currentState = newState;
+        currentState?.Enter();
     }
 
     public void Tick()
     {
-        CurrentState?.Tick();
+        currentState?.Tick();
     }
 }
