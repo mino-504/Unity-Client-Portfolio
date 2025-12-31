@@ -81,6 +81,46 @@ Player
 
 ---
 
+## Phase 3 – Enemy AI (FSM)
+
+### 목표
+적의 행동을 단순 조건문이 아닌 **FSM(Finite State Machine)** 구조로 설계하여,  
+상태 기반으로 행동이 결정되도록 구현했습니다.
+
+---
+
+### 구조 설계
+Enemy는 Controller(관리자)와 Movement(이동 처리)를 분리하고,  
+상태 및 상태 전환은 순수 C# 클래스 기반으로 구성했습니다.
+
+Enemy
+├ EnemyController : 상태 관리 및 구성 관리자
+├ EnemyMovement : 이동 처리 전담
+├ EnemyStateMachine : 상태 전환 관리
+└ States
+├ EnemyIdleState : 대기 상태
+└ EnemyChaseState : 추적 상태
+
+---
+
+### 구현 내용
+- **Idle ↔ Chase 상태 전환**
+  - 플레이어가 감지 범위(`detectRange`) 안으로 들어오면 Chase로 전환
+  - 플레이어가 이탈 범위(`loseRange`) 밖으로 나가면 Idle로 복귀
+- **Hysteresis(히스테리시스) 적용**
+  - `detectRange < loseRange`로 설정하여 상태가 떨리는 현상 방지
+- **Chase 상태에서 실제 추적 이동**
+  - Chase 상태에서 `EnemyMovement`를 호출하여 플레이어 방향으로 이동
+  - Idle 상태에서는 이동 호출이 없어 정지
+
+---
+
+### 설계 포인트
+- 상태(State)와 Unity 컴포넌트(MonoBehaviour)를 분리하여 구조 단순화
+- Enemy의 행동을 상태 기반으로 설명/확장 가능한 형태로 구성
+
+---
+
 ## 🛠️ 사용 기술
 - Unity 2022.3 LTS
 - C#
