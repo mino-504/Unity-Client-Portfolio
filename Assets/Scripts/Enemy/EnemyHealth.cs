@@ -24,8 +24,6 @@ public class EnemyHealth : MonoBehaviour, IDamageable
 
     private void Die()
     {
-        Debug.Log("[Enemy] Died");
-        // Phase 4-2에서는 간단히 제거
         Destroy(gameObject);
     }
 }

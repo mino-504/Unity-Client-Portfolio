@@ -1,105 +1,140 @@
-using System.Collections;
 using UnityEngine;
 
 public class PlayerCombat : MonoBehaviour
 {
-    [Header("Attack Data (ScriptableObject)")]
-    [SerializeField] private PlayerAttackData attackData;
+    [Header("Melee Attack Data (좌클릭)")]
+    [SerializeField] private PlayerAttackData meleeData;
 
-    [Header("Attack Effect")]
-    [SerializeField] private GameObject attackEffect;
+    [Header("Ranged Attack Data (우클릭)")]
+    [SerializeField] private PlayerRangedAttackData rangedData;
+
+    [Header("Debug")]
     [SerializeField] private bool showAttackGizmo = true;
 
-    private float lastAttackTime = -999f;
-    private PlayerInput playerInput;
+    private float lastMeleeTime = -999f;
+    private float lastRangedTime = -999f;
+
+    private PlayerInput input;
 
     void Awake()
     {
-        playerInput = GetComponent<PlayerInput>();
+        input = GetComponent<PlayerInput>();
 
-        if (playerInput == null)
-            Debug.LogError("[PlayerCombat] PlayerInput이 없습니다. Player에 PlayerInput 컴포넌트를 붙여주세요!");
+        if (input == null)
+            Debug.LogError("[PlayerCombat] PlayerInput이 없습니다.");
 
-        if (attackData == null)
-            Debug.LogError("[PlayerCombat] AttackData가 할당되지 않았습니다. Inspector에서 PlayerAttackData 에셋을 연결하세요!");
+        if (meleeData == null)
+            Debug.LogError("[PlayerCombat] MeleeData가 할당되지 않았습니다.");
 
-        if (attackEffect == null)
-            Debug.LogError("[PlayerCombat] AttackEffect가 할당되지 않았습니다. Inspector에서 연결하세요!");
+        if (meleeData != null && meleeData.attackEffectPrefab == null)
+            Debug.LogError("[PlayerCombat] MeleeData에 AttackEffectPrefab이 비어있습니다.");
+
+        if (rangedData == null)
+            Debug.LogError("[PlayerCombat] RangedData가 할당되지 않았습니다.");
+
+        if (rangedData != null && rangedData.projectilePrefab == null)
+            Debug.LogError("[PlayerCombat] RangedData에 Projectile Prefab이 비어있습니다.");
     }
 
     void Update()
     {
-        if (playerInput == null || attackData == null) return;
-        HandleAttackInput();
+        if (input == null) return;
+
+        // 좌클릭: 근접 공격
+        if (meleeData != null && input.AttackHeld)
+            TryMelee();
+
+        // 우클릭: 원거리 공격
+        if (rangedData != null && input.SecondaryAttackHeld)
+            TryRanged();
     }
 
-    void HandleAttackInput()
+    // =====================
+    // Melee
+    // =====================
+    void TryMelee()
     {
-        if (playerInput.AttackHeld)
-            TryAttack();
-    }
-
-    void TryAttack()
-    {
-        if (!CanAttack()) return;
-        ExecuteAttack();
-    }
-
-    bool CanAttack()
-    {
-        return Time.time - lastAttackTime >= attackData.cooldown;
-    }
-
-    void ExecuteAttack()
-    {
-        lastAttackTime = Time.time;
+        if (Time.time - lastMeleeTime < meleeData.cooldown) return;
+        lastMeleeTime = Time.time;
 
         Vector3 playerPos = transform.position;
-        Vector3 mousePos = playerInput.MouseWorldPosition;
+        Vector3 mousePos = input.MouseWorldPosition;
 
         Vector2 dir = (mousePos - playerPos).normalized;
+        if (dir.sqrMagnitude < 0.0001f) return;
 
-        Vector3 attackPos = playerPos + (Vector3)(dir * attackData.effectOffset);
+        Vector3 attackPos = playerPos + (Vector3)(dir * meleeData.effectOffset);
 
-        PlayAttackEffect(attackPos, dir);
-        ApplyDamage(attackPos);
+        // 이펙트
+        float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
+        GameObject fx = Instantiate(
+            meleeData.attackEffectPrefab,
+            attackPos,
+            Quaternion.Euler(0, 0, angle)
+        );
+        Destroy(fx, meleeData.effectDuration);
+
+        // 데미지 판정
+        Collider2D hit = Physics2D.OverlapCircle(
+            attackPos,
+            meleeData.range,
+            meleeData.enemyLayer
+        );
+
+        if (hit != null && hit.TryGetComponent<IDamageable>(out var dmg))
+            dmg.TakeDamage(meleeData.damage);
     }
 
-    void PlayAttackEffect(Vector3 position, Vector2 direction)
+    // =====================
+    // Ranged
+    // =====================
+    void TryRanged()
     {
-        if (attackEffect == null) return;
+        if (Time.time - lastRangedTime < rangedData.cooldown) return;
+        lastRangedTime = Time.time;
 
-        attackEffect.transform.position = position;
-
-        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
-        attackEffect.transform.rotation = Quaternion.Euler(0, 0, angle);
-
-        StartCoroutine(ShowAttackEffect());
+        FireProjectile();
     }
 
-    IEnumerator ShowAttackEffect()
+    void FireProjectile()
     {
-        attackEffect.SetActive(true);
-        yield return new WaitForSeconds(attackData.effectDuration);
-        attackEffect.SetActive(false);
-    }
+        Vector3 playerPos = transform.position;
+        Vector3 mousePos = input.MouseWorldPosition;
 
-    void ApplyDamage(Vector3 position)
-    {
-        Collider2D hit = Physics2D.OverlapCircle(position, attackData.range, attackData.enemyLayer);
+        Vector2 dir = (mousePos - playerPos).normalized;
+        if (dir.sqrMagnitude < 0.0001f) return;
 
-        if (hit != null && hit.TryGetComponent<IDamageable>(out var damageable))
+        Vector3 spawnPos = playerPos + (Vector3)(dir * rangedData.spawnOffset);
+
+        float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
+        Quaternion rot = Quaternion.Euler(0, 0, angle);
+
+        GameObject go = Instantiate(rangedData.projectilePrefab, spawnPos, rot);
+
+        if (go.TryGetComponent<Projectile>(out var proj))
         {
-            damageable.TakeDamage(attackData.damage);
-            Debug.Log("[Player] Enemy Hit!");
+            proj.Init(
+                dir,
+                rangedData.projectileSpeed,
+                rangedData.damage,
+                rangedData.projectileLifetime,
+                rangedData.hitLayer   // Enemy + Wall
+            );
+        }
+        else
+        {
+            Debug.LogError("[PlayerCombat] Projectile 프리팹에 Projectile.cs가 없습니다.");
         }
     }
 
+    // =====================
+    // Gizmo
+    // =====================
     private void OnDrawGizmosSelected()
     {
-        if (!showAttackGizmo || attackData == null) return;
+        if (!showAttackGizmo || meleeData == null) return;
 
         Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, attackData.range);
+        Gizmos.DrawWireSphere(transform.position, meleeData.range);
     }
 }

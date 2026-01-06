@@ -1,26 +1,30 @@
 using UnityEngine;
 
+[RequireComponent(typeof(Rigidbody2D))]
 public class PlayerMovement : MonoBehaviour
 {
     [SerializeField] private float moveSpeed = 5f;
 
     private PlayerInput playerInput;
+    private Rigidbody2D rb;
 
     void Awake()
     {
-        // 같은 GameObject(Player)에 붙은 PlayerInput을 가져옴
         playerInput = GetComponent<PlayerInput>();
+        rb = GetComponent<Rigidbody2D>();
+
+        // 추천(실수 방지)
+        rb.gravityScale = 0f;
+        rb.freezeRotation = true;
     }
 
-    void Update()
+    void FixedUpdate()
     {
-        // 입력 컴포넌트에서 이동 입력을 가져옴
-        Vector2 input = playerInput.MoveInput;
+        if (playerInput == null) return;
 
-        // 입력값 -> 방향 벡터 (2D니까 Z=0)
-        Vector3 direction = new Vector3(input.x, input.y, 0f).normalized;
+        Vector2 input = playerInput.MoveInput.normalized;
+        Vector2 nextPos = rb.position + input * moveSpeed * Time.fixedDeltaTime;
 
-        // 이동 적용 (프레임 독립)
-        transform.position += direction * moveSpeed * Time.deltaTime;
+        rb.MovePosition(nextPos);
     }
 }

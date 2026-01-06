@@ -1,43 +1,45 @@
 using UnityEngine;
 
+[RequireComponent(typeof(Rigidbody2D))]
 public class EnemyMovement : MonoBehaviour
 {
     [SerializeField] private float moveSpeed = 2f;
 
     private EnemyController enemy;
+    private Rigidbody2D rb;
 
     void Awake()
     {
         enemy = GetComponent<EnemyController>();
+        rb = GetComponent<Rigidbody2D>();
 
         if (enemy == null)
             Debug.LogError("[EnemyMovement] EnemyController가 없습니다.");
+
+        // 추천(실수 방지)
+        rb.gravityScale = 0f;
+        rb.freezeRotation = true;
     }
 
-    void Start()
-    {
-        if (enemy != null && enemy.PlayerTransform == null)
-            Debug.LogError("[EnemyMovement] PlayerTransform을 찾지 못했습니다. Player 태그 확인!");
-    }
-
-    // 🔹 추적 이동 (비물리)
     public void MoveTowardsPlayer()
     {
         if (enemy == null || enemy.PlayerTransform == null) return;
 
-        Vector3 targetPos = enemy.PlayerTransform.position;
+        Vector2 currentPos = rb.position;
+        Vector2 targetPos = enemy.PlayerTransform.position;
 
-        transform.position = Vector3.MoveTowards(
-            transform.position,
-            targetPos,
-            moveSpeed * Time.deltaTime
-        );
+        Vector2 dir = (targetPos - currentPos).normalized;
+        Vector2 nextPos = currentPos + dir * moveSpeed * Time.fixedDeltaTime;
+
+        rb.MovePosition(nextPos);
     }
 
-    // 🔹 Attack 상태에서 호출용 (비물리라 사실상 비어 있어도 됨)
     public void Stop()
     {
-        // 비물리 이동이므로 별도 처리 필요 없음
-        // (가독성 / 상태 의미용으로만 남겨둠)
+        if (rb == null) return;
+        rb.velocity = Vector2.zero;
+        rb.angularVelocity = 0f;
     }
+
+
 }

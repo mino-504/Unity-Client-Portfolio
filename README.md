@@ -98,12 +98,10 @@ Enemy
 - 공격 쿨타임 시스템
 - `IDamageable` 인터페이스 기반 공통 피격 처리
 - 체력 관리 및 사망 처리
-- Rigidbody2D Kinematic 적용으로 충돌 안정화
 
 ### 설계 포인트
 - 공격 판정과 AI 상태 로직 분리
-- 물리 엔진 의존 최소화
-- 시스템 중심 전투 구조
+- 시스템 중심 전투 구조 설계
 
 ---
 
@@ -121,17 +119,50 @@ Player
 └ AttackEffect (Prefab)
 
 ### 구현 내용
-- 좌클릭 기반 공격 입력 처리
+- 좌클릭 기반 근접 공격
 - 공격 쿨타임 관리
 - 마우스 방향 기반 공격 방향 계산
-- 플레이어 전방 공격 판정 위치 생성
-- 공격 이펙트 활성화 및 자동 비활성화
+- 공격 이펙트 생성 및 자동 제거
 - Gizmos를 활용한 공격 범위 시각화
 
 ### 설계 포인트
 - 입력(Input) → 판정(Logic) → 표현(Effect) 단계 분리
-- 이펙트와 판정을 코드에서 독립적으로 제어
-- 스킬 / 무기 시스템으로 확장 가능한 구조
+- 이펙트와 판정 로직 분리
+- 무기/스킬 시스템으로 확장 가능한 구조
+
+---
+
+## Phase 6 – Data Driven Structure & Physics Integration
+
+### 목표
+수치와 설정을 코드에서 분리하여  
+**데이터 기반(Data Driven) 구조**로 전투 시스템을 개선하고,  
+물리 기반 환경 상호작용을 안정적으로 구현했습니다.
+
+### 구조 설계
+Data
+├ PlayerAttackData (근접)
+└ PlayerRangedAttackData (원거리)
+
+Combat
+├ PlayerCombat
+├ Projectile
+└ IDamageable
+
+### 구현 내용
+- ScriptableObject 기반 공격 데이터 분리
+- 좌클릭(근접) / 우클릭(원거리) 공격 공존
+- Projectile 시스템 구현
+- LayerMask 기반 공격 대상/환경 분리
+- 벽(Wall)과의 물리 충돌 처리
+- Rigidbody2D 기반 이동 구조로 전환
+- Idle 상태 진입 시 속도 초기화로 물리 안정화
+
+### 설계 포인트
+- **수치/설정(Data)과 로직(Component) 분리**
+- 공격 타입 추가 시 코드 수정 최소화
+- 환경 오브젝트(벽)와의 상호작용 고려
+- 물리 기반 이동과 AI FSM의 충돌 문제 해결 경험
 
 ---
 
@@ -143,8 +174,7 @@ Player
 ---
 
 ## 📈 개발 로드맵
-- Phase 6: ScriptableObject 기반 데이터 구조
-- Phase 7: UI 및 게임 흐름 구성
+- Phase 7: UI 및 피드백 시스템
 - Phase 8: 코드 정리 및 포트폴리오 완성
 
 ---
